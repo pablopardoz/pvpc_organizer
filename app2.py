@@ -204,7 +204,9 @@ def solve_multi_appliance_schedule(
             for t in range(N):
                 valid_starts = [
                     s[name, k]
-                    for k in range(max(0, t - duration + 1), min(t + 1, N - duration + 1))
+                    for k in range(
+                        max(0, t - duration + 1), min(t + 1, N - duration + 1)
+                    )
                 ]
                 prob += x[name, t] == pulp.lpSum(valid_starts)
         else:
@@ -288,7 +290,7 @@ def solve_multi_appliance_schedule(
 st.set_page_config(
     page_title="PVPC Multi-Appliance Optimizer", layout="wide", page_icon="⚡"
 )
-st.title("⚡ Optimizador de Cargas Domésticas PVPC (`app2`)")
+st.title("⚡ Optimizador de Cargas Domésticas PVPC")
 
 # --- BARRA LATERAL ---
 st.sidebar.header("📥 Descarga de Precios")
@@ -331,9 +333,7 @@ with st.sidebar.expander("🚘 Coche Eléctrico", expanded=True):
     car_h = st.number_input(
         "Horas necesarias", min_value=1, max_value=24, value=5, key="car_h"
     )
-    car_cont = st.checkbox(
-        "Horas seguidas", value=True, key="car_cont"
-    )
+    car_cont = st.checkbox("Horas seguidas", value=True, key="car_cont")
     appliances["Coche Eléctrico"] = {
         "active": use_car,
         "power": car_kw,
@@ -355,9 +355,7 @@ with st.sidebar.expander("🧺 Lavadora", expanded=False):
     wash_h = st.number_input(
         "Horas necesarias", min_value=1, max_value=12, value=2, key="wash_h"
     )
-    wash_cont = st.checkbox(
-        "Horas seguidas", value=True, key="wash_cont"
-    )
+    wash_cont = st.checkbox("Horas seguidas", value=True, key="wash_cont")
     appliances["Lavadora"] = {
         "active": use_wash,
         "power": wash_kw,
@@ -379,9 +377,7 @@ with st.sidebar.expander("🌀 Secadora", expanded=False):
     dryer_h = st.number_input(
         "Horas necesarias", min_value=1, max_value=12, value=2, key="dryer_h"
     )
-    dryer_cont = st.checkbox(
-        "Horas seguidas", value=True, key="dryer_cont"
-    )
+    dryer_cont = st.checkbox("Horas seguidas", value=True, key="dryer_cont")
     appliances["Secadora"] = {
         "active": use_dryer,
         "power": dryer_kw,
@@ -403,9 +399,7 @@ with st.sidebar.expander("🍽️ Lavavajillas", expanded=False):
     dish_h = st.number_input(
         "Horas necesarias", min_value=1, max_value=12, value=2, key="dish_h"
     )
-    dish_cont = st.checkbox(
-        "Horas seguidas", value=True, key="dish_cont"
-    )
+    dish_cont = st.checkbox("Horas seguidas", value=True, key="dish_cont")
     appliances["Lavavajillas"] = {
         "active": use_dish,
         "power": dish_kw,
@@ -427,9 +421,7 @@ with st.sidebar.expander("🍳 Horno", expanded=False):
     oven_h = st.number_input(
         "Horas necesarias", min_value=1, max_value=12, value=2, key="oven_h"
     )
-    oven_cont = st.checkbox(
-        "Horas seguidas", value=True, key="oven_cont"
-    )
+    oven_cont = st.checkbox("Horas seguidas", value=True, key="oven_cont")
     appliances["Horno"] = {
         "active": use_oven,
         "power": oven_kw,
@@ -438,56 +430,57 @@ with st.sidebar.expander("🍳 Horno", expanded=False):
     }
 
 # --- PANEL PRINCIPAL ---
-st.subheader("🗓️ Selección de Día / Período")
-
 today = date.today()
 tomorrow = today + timedelta(days=1)
 
-period_option = st.radio(
-    "Ver planificación para:",
-    ["Hoy", "Mañana", "Hoy + Mañana", "Personalizado"],
-    horizontal=True,
-)
+# period_option = st.radio(
+#     "Ver planificación para:",
+#     ["Hoy", "Mañana", "Hoy + Mañana", "Personalizado"],
+#     horizontal=True,
+# )
 
-if period_option == "Hoy":
-    view_start, view_end = today, today
-elif period_option == "Mañana":
+# Comprobación automática de la disponibilidad del día de mañana:
+df_tomorrow = load_data_from_db(tomorrow, tomorrow)
+
+if not df_tomorrow.empty:
     view_start, view_end = tomorrow, tomorrow
-elif period_option == "Hoy + Mañana":
-    view_start, view_end = today, tomorrow
+    df = df_tomorrow
 else:
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        view_start = st.date_input("Desde", today)
-    with col_d2:
-        view_end = st.date_input("Hasta", tomorrow)
-
-df = load_data_from_db(view_start, view_end)
+    view_start, view_end = today, today
+    df = load_data_from_db(today, today)
+    if not df.empty:
+        st.info(
+            "ℹ️ Los precios de mañana aún no están disponibles (disponibles"
+            " ~20:30 CET)."
+        )
 
 if df.empty:
     st.info(
-        f"No hay precios guardados en la base de datos para el día o período"
-        f" seleccionado ({view_start} a {view_end}). Usa el botón **🔄 Descargar"
-        " Hoy + Mañana** de la barra lateral."
+        f"No hay precios guardados en la base de datos para hoy ({today}). Usa"
+        " el botón **🔄 Descargar Hoy + Mañana** de la barra lateral."
     )
 else:
-    # Métricas
+    # Métricas (precios redondeados a 2 decimales y colores/flechas personalizados)
     col1, col2, col3, col4 = st.columns(4)
     min_row = df.loc[df["price_eur_kwh"].idxmin()]
     max_row = df.loc[df["price_eur_kwh"].idxmax()]
     avg_price = df["price_eur_kwh"].mean()
 
+    # Mínimo: Flecha hacia abajo (▼) en verde
     col1.metric(
         "Precio Mínimo",
-        f"{min_row['price_eur_kwh']:.5f} €/kWh",
-        f"Hora {min_row['hour']}:00 ({min_row['date']})",
+        f"{min_row['price_eur_kwh']:.2f} €/kWh",
+        f"- Hora {min_row['hour']}:00 ({min_row['date']})",
+        delta_color="inverse",
     )
+    # Máximo: Flecha hacia arriba (▲) en rojo
     col2.metric(
         "Precio Máximo",
-        f"{max_row['price_eur_kwh']:.5f} €/kWh",
+        f"{max_row['price_eur_kwh']:.2f} €/kWh",
         f"Hora {max_row['hour']}:00 ({max_row['date']})",
+        delta_color="inverse",
     )
-    col3.metric("Precio Medio", f"{avg_price:.5f} €/kWh")
+    col3.metric("Precio Medio", f"{avg_price:.2f} €/kWh")
     col4.metric("Horas en Rango", f"{len(df)} h")
 
     st.markdown("---")
