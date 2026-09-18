@@ -365,6 +365,30 @@ with st.sidebar.expander("🧺 Lavadora", expanded=False):
         "continuous": wash_cont,
     }
 
+# Secadora
+with st.sidebar.expander("🌀 Secadora", expanded=False):
+    use_dryer = st.checkbox("Activar Secadora", value=False)
+    dryer_kw = st.number_input(
+        "Potencia (kW)",
+        min_value=0.5,
+        max_value=4.0,
+        value=2.0,
+        step=0.1,
+        key="dryer_kw",
+    )
+    dryer_h = st.number_input(
+        "Horas necesarias", min_value=1, max_value=12, value=2, key="dryer_h"
+    )
+    dryer_cont = st.checkbox(
+        "Horas seguidas", value=True, key="dryer_cont"
+    )
+    appliances["Secadora"] = {
+        "active": use_dryer,
+        "power": dryer_kw,
+        "hours": dryer_h,
+        "continuous": dryer_cont,
+    }
+
 # Lavavajillas
 with st.sidebar.expander("🍽️ Lavavajillas", expanded=False):
     use_dish = st.checkbox("Activar Lavavajillas", value=True)
@@ -487,6 +511,7 @@ else:
         color_map = {
             "Coche Eléctrico": "#1f77b4",
             "Lavadora": "#ff7f0e",
+            "Secadora": "#9467bd",
             "Lavavajillas": "#2ca02c",
             "Horno": "#d62728",
         }
@@ -498,7 +523,7 @@ else:
                         x=schedule_df["datetime"],
                         y=schedule_df[app_name],
                         name=f"{app_name} (kW)",
-                        marker_color=color_map.get(app_name, "#9467bd"),
+                        marker_color=color_map.get(app_name, "#8c564b"),
                     ),
                     secondary_y=False,
                 )
